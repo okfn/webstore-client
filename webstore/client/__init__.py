@@ -184,11 +184,10 @@ class Table(_Base):
         self.table_name = table_name
         self.unique_columns = []
         base_path = base_path + '/' + table_name
-        self._exists = None
+        self._exists = False
         super(Table, self).__init__(server, base_path,
                 http_user, http_password)
 
-    @property
     def exists(self):
         """ Check if the given table actually exists or if it needs to be
         created by writing content. 
@@ -196,7 +195,7 @@ class Table(_Base):
         Note the value is cached and the method thus failes to recognize 
         write activity from other places.
         """
-        if self._exists is None:
+        if not self._exists:
             try:
                 self._request('GET', '?_limit=0')
                 self._exists = True
@@ -264,10 +263,10 @@ class Table(_Base):
         try:
             unique_columns = unique_columns or self.unique_columns
             query = '?' + urlencode([('unique', u) for u in unique_columns])
-            if self.exists:
-                res = self._request("PUT", query)
+            if self.exists():
+                res = self._request("PUT", query, rows)
             else:
-                res = self._request("POST", query)
+                res = self._request("POST", query, rows)
             self._exists = True
             return res
         except WebstoreClientException, wce:
@@ -283,12 +282,12 @@ class Table(_Base):
         as any contained data.
         """
         try:
-            res = self._request("DELETE", '')
-            self._exists = False
-            return res
+            return self._request("DELETE", '')
         except WebstoreClientException, wce:
             if wce.state != 'success':
                 raise
+            else:
+                self._exists = False
 
     def __repr__(self):
         return "<Table(%s)>" % self.table_name
