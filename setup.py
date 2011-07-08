@@ -8,7 +8,15 @@ setup(name='webstore-client',
       description="Python client for WebStore",
       long_description="""\
 WebStore is a RESTful web table service. This package offers a few convenience options to access the system remotely.""",
-      classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
+      classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: GNU General Public License (GPL)",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX",
+        "Programming Language :: Python",
+        "Topic :: Database"],
       keywords='webstore rest api tables csv json',
       author='Open Knowledge Foundation',
       author_email='info@okfn.org',
