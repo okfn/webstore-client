@@ -85,7 +85,7 @@ class _Base(object):
 
 
 class Database(_Base):
-    """ A web-based database with many ``Table``s. Databases are owned by 
+    """ A web-based database with many `Tables`. Databases are owned by 
     one particular user and can usually only be written by this user. """
 
     def __init__(self, server, database_user, database_name, 
