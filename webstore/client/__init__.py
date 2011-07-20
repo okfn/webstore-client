@@ -62,6 +62,7 @@ class _Base(object):
             _headers['Authorization'] = self.authorization
         _headers.update(headers)
         path = urljoin(self.base_path, path)
+        _headers['Content-Length'] = len(data)+2 if data else 0
         conn = HTTPConnection(self.server)
         conn.request(method, path, data, _headers)
         response = conn.getresponse()
@@ -78,7 +79,10 @@ class _Base(object):
         if not 'Accept' in _headers:
             _headers['Accept'] = 'application/json'
         response = self._raw_request(method, path, data, _headers)
-        data = loads(response.read())
+        try:
+            data = loads(response.read())
+        except ValueError:
+            data = {}
         if isinstance(data, dict) and 'state' in data and 'message' in data:
             raise WebstoreClientException(response, data)
         return data
