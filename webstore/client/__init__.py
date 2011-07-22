@@ -277,6 +277,10 @@ class Table(_Base):
             if wce.state != 'success':
                 raise
 
+    def distinct(self, column_name):
+        """ Get all distinct values for a column. """
+        return self._request('GET', self.table_name + '/distinct/' + column_name)
+
     def __iter__(self):
         """ Defer iteration to traverse. """
         return iter(self.traverse())
