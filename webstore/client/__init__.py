@@ -1,3 +1,4 @@
+import os
 from urlparse import urljoin
 from urllib import urlencode
 try:
@@ -5,10 +6,56 @@ try:
 except ImportError:
     from simplejson import loads, dumps
 
+import ConfigParser
 from httplib import HTTPConnection
 
 ASCENDING = 'asc'
 DESCENDING = 'desc'
+
+def DSN(name, config=None):
+    """ Create a database from a data source name.
+
+    Allows to connect to pre-configured databases via a config file, 
+    either in the current working directory (``webstore.cfg``) or the 
+    user's home directory (``.webstore.cfg``). The configuration is 
+    expected to have the following format::
+
+      [DEFAULT]
+      # global options
+      server = webstore.server.org
+      http_user = username
+      http_password = password
+
+      [source1]
+      user = username
+      database = db1
+
+    If the given ``name`` does not exist as a section in the 
+    configuration file, the ``DEFAULT`` section will be used and the 
+    name will be assumed to be the target database name.
+    """
+    config = ConfigParser.SafeConfigParser()
+    config.read(['webstore.cfg', 
+                os.path.expanduser('~/.webstore.cfg')])
+    sect = name
+    if not config.has_section(name):
+        sect = 'DEFAULT'
+    message = 'DataSource config: No "%s" given, please set up ' \
+              + 'the config file (.webstore.cfg)'
+    for opt in ['server', 'user']:
+        if not config.has_option(sect, opt):
+            raise ValueError(message % opt)
+    database = config.get(sect, 'database') if \
+            config.has_option(sect, 'database') else name
+    http_user = config.get(sect, 'http_user') if \
+            config.has_option(sect, 'http_user') else name
+    http_password = config.get(sect, 'http_password') if \
+            config.has_option(sect, 'http_password') else name
+    return Database(config.get(sect, 'server'),
+                    config.get(sect, 'user'),
+                    database, http_user=http_user,
+                    http_password=http_password)
+
 
 class WebstoreClientException(Exception):
     """ A simple exception for webstore errors which have been
