@@ -12,7 +12,7 @@ from httplib import HTTPConnection
 ASCENDING = 'asc'
 DESCENDING = 'desc'
 
-def DSN(name, config=None):
+def DSN(name, config_file=None):
     """ Create a database from a data source name.
 
     Allows to connect to pre-configured databases via a config file, 
@@ -35,8 +35,11 @@ def DSN(name, config=None):
     name will be assumed to be the target database name.
     """
     config = ConfigParser.SafeConfigParser()
-    config.read(['webstore.cfg', 
-                os.path.expanduser('~/.webstore.cfg')])
+    if config_file:
+        config.read([config_file])
+    else:
+        config.read(['webstore.cfg', 
+                    os.path.expanduser('~/.webstore.cfg')])
     sect = name
     if not config.has_section(name):
         sect = 'DEFAULT'
