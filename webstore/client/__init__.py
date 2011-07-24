@@ -43,8 +43,8 @@ def DSN(name, config_file=None):
     sect = name
     if not config.has_section(name):
         sect = 'DEFAULT'
-    message = 'DataSource config: No "%s" given, please set up ' \
-              + 'the config file (.webstore.cfg)'
+    message = 'DataSource config: No "%s" given, please set up the ' \
+        + 'config file (.webstore.cfg). See http://bit.ly/webstore-dsn.'
     for opt in ['server', 'user']:
         if not config.has_option(sect, opt):
             raise ValueError(message % opt)
@@ -291,6 +291,15 @@ class Table(_Base):
             if len(result) < _step:
                 break
             _offset += _step
+
+    def find_one(self, **kwargs):
+        """ Get a single item matching the given criteria. The criteria 
+        can be the value of any column. If no item is found, ``None`` is
+        returned. """
+        items = list(self.traverse(_limit=1, **kwargs))
+        if not len(items):
+            return None
+        return items[0]
 
     def writerow(self, row, unique_columns=None):
         """ Write a single row. The row is expected to be a flat
