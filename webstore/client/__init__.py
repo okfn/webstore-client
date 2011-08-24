@@ -1,5 +1,5 @@
 import os
-from urlparse import urljoin
+from urlparse import urljoin, urlparse
 from urllib import urlencode
 try:
     from json import loads, dumps
@@ -58,6 +58,33 @@ def DSN(name, config_file=None):
                     config.get(sect, 'user'),
                     database, http_user=http_user,
                     http_password=http_password)
+
+
+def URL(url, default_table=None):
+    """ Create a webstore database handle from a URL.
+    The URL is assumed to have the following form::
+
+        http://user:password@server/db_user/db_database[/table]
+
+    If no ``user`` and ``password`` are given, anonymous access is 
+    used. The additional ``table`` argument is optional: if it is 
+    present, a tuple of (``Database``, ``Table``) objects will be 
+    returned. If no ``table`` is specfied, the second element of the
+    tuple will be ``None`` or the table named after the optional 
+    argument ``default_table``."""
+    parsed = urlparse(url)
+    path = parsed.path.split('/')[1:]
+    if len(path) < 2:
+        raise ValueError("Incomplete webstore DB path: %s" % parsed.path)
+    
+    db = Database(parsed.hostname, path[0], path[1], 
+                  http_user=parsed.username, http_password=parsed.password)
+    table = None
+    if len(path) > 2:
+        table = db[path[2]]
+    elif default_table is not None:
+        table = db[default_table]
+    return (db, table)
 
 
 class WebstoreClientException(Exception):
