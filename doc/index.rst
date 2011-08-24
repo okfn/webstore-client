@@ -5,7 +5,7 @@
 
 .. highlight:: python
 
-WebStore client: tables on the web
+WebStore Client: tables on the web
 ==================================
 
 **WebStore Client** is a simple Python wrapper to easily access WebStore, 
@@ -14,13 +14,8 @@ visualization. WebStore supports various ways to access the data stored in
 it, but this Python client library makes using it as simple as a generic 
 `csv.DictWriter`.
 
-.. toctree::
-   :maxdepth: 2
-
-   api
-
-Short tutorial
---------------
+Example
+=======
 
 To use WebStore, you need to have an instance of the WebStore server running
 either locally or on the web. If you also want to have write access, you'll 
@@ -99,10 +94,18 @@ option to apply limits, offsets and very simple column filters::
 For more informations on how you can use the WebStore client, have a look 
 at the API documentation for :class:`~webstore.client.Table`.
 
-Indices and tables
-==================
+API
+===
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+Access to the WebStore client happens via two simple classes: 
+:class:`~webstore.client.Database` and :class:`~webstore.client.Table`.
 
+.. autofunction:: webstore.client.DSN
+
+.. autofunction:: webstore.client.URL
+
+.. autoclass:: webstore.client.Database
+  :members: tables, __getitem__, __contains__
+
+.. autoclass:: webstore.client.Table
+  :members:
