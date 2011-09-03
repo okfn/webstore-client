@@ -76,8 +76,7 @@ def URL(url, default_table=None):
     path = parsed.path.split('/')[1:]
     if len(path) < 2:
         raise ValueError("Incomplete webstore DB path: %s" % parsed.path)
-    
-    db = Database(parsed.hostname, path[0], path[1], 
+    db = Database(parsed.hostname, path[0], path[1], port=parsed.port,
                   http_user=parsed.username, http_password=parsed.password)
     table = None
     if len(path) > 2:
@@ -123,8 +122,9 @@ class _Base(object):
     """ Common base object for ``Database`` and ``Table``. Does basic
     HTTP connectivity and decoding/encoding. """
 
-    def __init__(self, server, base_path, http_user, http_password):
+    def __init__(self, server, port, base_path, http_user, http_password):
         self.server = server
+        self.port = port or 80
         self.base_path = base_path
         self.authorization = None
         if http_user is not None and http_password is not None:
@@ -140,7 +140,7 @@ class _Base(object):
         _headers.update(headers)
         path = urljoin(self.base_path, path)
         _headers['Content-Length'] = len(data)+2 if data else 0
-        conn = HTTPConnection(self.server)
+        conn = HTTPConnection(self.server, self.port)
         conn.request(method, path, data, _headers)
         response = conn.getresponse()
         return response
@@ -157,9 +157,10 @@ class _Base(object):
             _headers['Accept'] = 'application/json'
         response = self._raw_request(method, path, data, _headers)
         try:
-            data = loads(response.read())
+            data = response.read()
+            data = loads(data)
         except ValueError:
-            data = {}
+            data = {'state': 'error', 'message': response.reason}
         if isinstance(data, dict) and 'state' in data and 'message' in data:
             raise WebstoreClientException(response, data)
         return data
@@ -170,7 +171,7 @@ class Database(_Base):
     one particular user and can usually only be written by this user. """
 
     def __init__(self, server, database_user, database_name, 
-            http_user=None, http_password=None):
+            port=None, http_user=None, http_password=None):
         """ Create a new database connection to the server `server_url`.
 
         This will create an object that allows the creation and management
@@ -188,6 +189,7 @@ class Database(_Base):
             - `database_name`: the database name. Note that database names
               can only contain alphanumeric characters and underscores and
               must not start with a number or underscore.
+            - `port`: server port, defaults to 80.
             - `http_user`: the username for HTTP authentication. For 
               webstores connected to an instance of CKAN, this is the user
               that signs into CKAN.
@@ -200,7 +202,7 @@ class Database(_Base):
         self.http_password = http_password
         assert not '/' in server, "Server hostname most not contain '/'!"
         base_path = '/' + database_user + '/' + database_name
-        super(Database, self).__init__(server, base_path,
+        super(Database, self).__init__(server, port, base_path,
                 http_user, http_password)
 
 
@@ -223,7 +225,7 @@ class Database(_Base):
         :Parameters:
             - `table_name`: name of the table to return.
         """
-        return Table(self.server, self.base_path, table_name,
+        return Table(self.server, self.port, self.base_path, table_name,
                      self.http_user, self.http_password)
 
     def __repr__(self):
@@ -235,7 +237,7 @@ class Table(_Base):
     """ A table in the database on which you can perform read 
     and (if authorized) write operations. """
 
-    def __init__(self, server, base_path, table_name, http_user,
+    def __init__(self, server, port, base_path, table_name, http_user,
                  http_password):
         """ Get a handle for the table `table_name` on `server`.
 
@@ -252,6 +254,7 @@ class Table(_Base):
         :Parameters:
             - `server`: hostname or IP of the server to connect to. Note 
               that this is not a URL but only the host name.
+            - `port`: server port, defaults to 80.
             - `base_path`: the path prefix on the server, e.g. 
               /<user>/<database>.
             - `table_name`: the name of the table. The table name must
@@ -266,7 +269,7 @@ class Table(_Base):
         self.unique_columns = []
         base_path = base_path + '/' + table_name
         self._exists = False
-        super(Table, self).__init__(server, base_path,
+        super(Table, self).__init__(server, port, base_path,
                 http_user, http_password)
 
     def exists(self):
@@ -323,10 +326,13 @@ class Table(_Base):
         """ Get a single item matching the given criteria. The criteria 
         can be the value of any column. If no item is found, ``None`` is
         returned. """
-        items = list(self.traverse(_limit=1, **kwargs))
-        if not len(items):
+        try:
+            items = list(self.traverse(_limit=1, **kwargs))
+            if not len(items):
+                return None
+            return items[0]
+        except WebstoreClientException:
             return None
-        return items[0]
 
     def writerow(self, row, unique_columns=None):
         """ Write a single row. The row is expected to be a flat
@@ -356,7 +362,7 @@ class Table(_Base):
             if self.exists():
                 res = self._request("PUT", query, rows)
             else:
-                res = self._request("POST", query, rows)
+                res = self._request("POST", '', rows)
             self._exists = True
             return res
         except WebstoreClientException, wce:
