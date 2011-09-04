@@ -205,6 +205,12 @@ class Database(_Base):
         super(Database, self).__init__(server, port, base_path,
                 http_user, http_password)
 
+    def query(self, query):
+        """ Run a raw SQL query against the webstore. If the user has rights
+        to delete entries, this can be any SQL statement, otherwise it may only
+        be a read-only query. """
+        return self._request("PUT", '', data=query, 
+                headers={'Content-Type': 'text/sql'})
 
     def __contains__(self, table_name):
         """ Check if `table_name` is an existing table on the database. 
@@ -359,10 +365,15 @@ class Table(_Base):
         try:
             unique_columns = unique_columns or self.unique_columns
             query = '?' + urlencode([('unique', u) for u in unique_columns])
-            if self.exists():
+            if not self.exists():
+                try:
+                    res = self._request("POST", '', rows)
+                except WebstoreClientException, wce:
+                    if not 'Table already exists' in wce.message:
+                        raise
+                    self._exists = True
+            if self._exists:
                 res = self._request("PUT", query, rows)
-            else:
-                res = self._request("POST", '', rows)
             self._exists = True
             return res
         except WebstoreClientException, wce:
