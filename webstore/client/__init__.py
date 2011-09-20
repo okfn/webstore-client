@@ -1,5 +1,6 @@
 import os
 from urlparse import urljoin, urlparse
+from collections import defaultdict
 from urllib import urlencode
 try:
     from json import loads, dumps
@@ -11,6 +12,7 @@ from httplib import HTTPConnection
 
 ASCENDING = 'asc'
 DESCENDING = 'desc'
+SEP = '||||'
 
 def DSN(name, config_file=None):
     """ Create a database from a data source name.
@@ -274,26 +276,11 @@ class Table(_Base):
         self.table_name = table_name
         self.unique_columns = []
         base_path = base_path + '/' + table_name
-        self._exists = False
+        self._buffer = defaultdict(list)
         super(Table, self).__init__(server, port, base_path,
                 http_user, http_password)
 
-    def exists(self):
-        """ Check if the given table actually exists or if it needs to be
-        created by writing content. 
-
-        Note the value is cached and the method thus failes to recognize 
-        write activity from other places.
-        """
-        if not self._exists:
-            try:
-                self._request('GET', '?_limit=0')
-                self._exists = True
-            except WebstoreClientException:
-                self._exists = False
-        return self._exists
-
-    def traverse(self, _step=50, _sort=[], _limit=None, _offset=0, 
+    def traverse(self, _step=1000, _sort=[], _limit=None, _offset=0, 
                  **kwargs):
         """ Iterate over the table, fetching `_step` items at a time.
 
@@ -340,15 +327,16 @@ class Table(_Base):
         except WebstoreClientException:
             return None
 
-    def writerow(self, row, unique_columns=None):
+    def writerow(self, row, unique_columns=None, bufferlen=None):
         """ Write a single row. The row is expected to be a flat
         dictionary (i.e. no lists, tuples or dicts as values).
 
         For more documentation, see `writerows`. 
         """
-        return self.writerows([row], unique_columns=unique_columns)
+        return self.writerows([row], unique_columns=unique_columns,
+                              bufferlen=bufferlen)
 
-    def writerows(self, rows, unique_columns=None):
+    def writerows(self, rows, unique_columns=None, bufferlen=None):
         """ Write a set of rows to the table. Each row is expected to be
         a flat dictionary (i.e. no lists, tuples or dicts as values).
 
@@ -362,23 +350,34 @@ class Table(_Base):
             - `unique_columns`: a set of columns that can be used to 
               uniquely identify this row when attempting to update.
         """
+        if bufferlen is not None:
+            key = SEP.join(unique_columns)
+            self._buffer[key].extend(rows)
+            if len(self._buffer[key]) >= bufferlen:
+                ret = self.writerows(self._buffer[key], 
+                        unique_columns=unique_columns)
+                self._buffer[key] = list()
+                return ret
+            return {'state': 'buffered'}
+
         try:
             unique_columns = unique_columns or self.unique_columns
             query = '?' + urlencode([('unique', u) for u in unique_columns])
-            if not self.exists():
-                try:
-                    res = self._request("POST", '', rows)
-                except WebstoreClientException, wce:
-                    if not 'Table already exists' in wce.message:
-                        raise
-                    self._exists = True
-            if self._exists:
-                res = self._request("PUT", query, rows)
-            self._exists = True
-            return res
+            return self._request("POST", query, rows)
         except WebstoreClientException, wce:
             if wce.state != 'success':
                 raise
+
+    def flush(self):
+        """ Flush write buffer. """
+        for key, rows in self._buffer.items():
+            unique_columns = key.split(SEP)
+            self.writerows(rows, unique_columns=unique_columns)
+            self._buffer[key] = []
+
+    def schema(self, column_name):
+        """ Get information about the table layout. """
+        return self._request('GET', self.table_name + '/schema')
 
     def distinct(self, column_name):
         """ Get all distinct values for a column. """
@@ -397,8 +396,6 @@ class Table(_Base):
         except WebstoreClientException, wce:
             if wce.state != 'success':
                 raise
-            else:
-                self._exists = False
 
     def __repr__(self):
         return "<Table(%s)>" % self.table_name
