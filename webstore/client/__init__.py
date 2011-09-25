@@ -305,7 +305,7 @@ class Table(_Base):
         while _limit is None or _offset < _limit:
             page_query = list(query)
             page_query.append(('_offset', _offset))
-            page_query.append(('_limit', _offset + _step))
+            page_query.append(('_limit', _step))
             qs = urlencode([(k, unicode(v).encode('utf-8')) for \
                             k, v in page_query])
             result = self._request("GET", '?' + qs)
