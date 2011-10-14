@@ -38,6 +38,11 @@ database, the could would look like this::
   >>> database = Database('webstore.myserver.org', 'me', 'testdb',
                           http_user='me', http_password='secret')
 
+Or, if you are using API key rather than user and password::
+
+  >>> database = Database('webstore.myserver.org', 'me', 'testdb',
+                          http_apikey='my-api-key')
+
 There is no special command to create a database, so just connecting to an 
 arbitrary name within your own namespace will create one. Once you have 
 connected to a database, you can list tables or check for a specific name::

@@ -124,7 +124,9 @@ class _Base(object):
     """ Common base object for ``Database`` and ``Table``. Does basic
     HTTP connectivity and decoding/encoding. """
 
-    def __init__(self, server, port, base_path, http_user, http_password):
+    def __init__(self, server, port, base_path, http_user=None,
+            http_password=None,
+            http_apikey=None):
         self.server = server
         self.port = port or 80
         self.base_path = base_path
@@ -132,6 +134,8 @@ class _Base(object):
         if http_user is not None and http_password is not None:
             secret = http_user + ':' + http_password
             self.authorization = 'Basic ' + secret.encode('base64')
+        elif http_apikey:
+            self.authorization = http_apikey
 
     def _raw_request(self, method, path, data=None, headers={}):
         """ Run a raw request, handle authentication but no
