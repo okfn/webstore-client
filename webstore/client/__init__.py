@@ -177,16 +177,15 @@ class Database(_Base):
     one particular user and can usually only be written by this user. """
 
     def __init__(self, server, database_user, database_name, 
-            port=None, http_user=None, http_password=None):
+            port=None, http_user=None, http_password=None,
+            http_apikey=None):
         """ Create a new database connection to the server `server_url`.
 
         This will create an object that allows the creation and management
         of databases on webstore.
 
-        If both `http_user` and `http_password` are given, authentication 
-        via HTTP Basic is attempted. Note that invalid credentials will 
-        lead to errors even for requests that normally do not require a 
-        user to be signed in.
+        Authentication is via either username and password or API key. See docs
+        for more details.
 
         :Parameters:
             - `server`: hostname or IP of the server to connect to. Note 
@@ -196,20 +195,19 @@ class Database(_Base):
               can only contain alphanumeric characters and underscores and
               must not start with a number or underscore.
             - `port`: server port, defaults to 80.
-            - `http_user`: the username for HTTP authentication. For 
-              webstores connected to an instance of CKAN, this is the user
-              that signs into CKAN.
+            - `http_user`: the username for HTTP authentication.
             - `http_password`: the user's password.
-
+            - `http_apikey`: API Key e.g. for CKAN.
         """
         self.database_user = database_user
         self.database_name = database_name
         self.http_user = http_user
         self.http_password = http_password
+        self.http_apikey = http_apikey
         assert not '/' in server, "Server hostname most not contain '/'!"
         base_path = '/' + database_user + '/' + database_name
         super(Database, self).__init__(server, port, base_path,
-                http_user, http_password)
+                http_user, http_password, http_apikey)
 
     def query(self, query):
         """ Run a raw SQL query against the webstore. If the user has rights
@@ -238,7 +236,7 @@ class Database(_Base):
             - `table_name`: name of the table to return.
         """
         return Table(self.server, self.port, self.base_path, table_name,
-                     self.http_user, self.http_password)
+                     self.http_user, self.http_password, self.http_apikey)
 
     def __repr__(self):
         return "<Database(%s / %s)>" % (self.database_user,
@@ -249,8 +247,8 @@ class Table(_Base):
     """ A table in the database on which you can perform read 
     and (if authorized) write operations. """
 
-    def __init__(self, server, port, base_path, table_name, http_user,
-                 http_password):
+    def __init__(self, server, port, base_path, table_name, http_user=None,
+                 http_password=None, http_apikey=None):
         """ Get a handle for the table `table_name` on `server`.
 
         *Note*: This is usually created via database[table_name].
@@ -258,10 +256,8 @@ class Table(_Base):
         This will create an object that allows the creation and 
         management of a table on webstore.
 
-        If both `http_user` and `http_password` are given, authentication 
-        via HTTP Basic is attempted. Note that invalid credentials will 
-        lead to errors even for requests that normally do not require a 
-        user to be signed in.
+        Authentication is via either username and password or API key. See docs
+        for more details.
 
         :Parameters:
             - `server`: hostname or IP of the server to connect to. Note 
@@ -272,17 +268,16 @@ class Table(_Base):
             - `table_name`: the name of the table. The table name must
               contain only alphanumeric characters and underscores and
               must not start with a number or underscore.
-            - `http_user`: the username for HTTP authentication. For 
-              webstores connected to an instance of CKAN, this is the user
-              that signs into CKAN.
+            - `http_user`: the username for HTTP authentication.
             - `http_password`: the user's password.
+            - `http_apikey`: API Key e.g. for CKAN.
         """
         self.table_name = table_name
         self.unique_columns = []
         base_path = base_path + '/' + table_name
         self._buffer = defaultdict(list)
         super(Table, self).__init__(server, port, base_path,
-                http_user, http_password)
+                http_user, http_password, http_apikey)
 
     def traverse(self, _step=1000, _sort=[], _limit=None, _offset=0, 
                  **kwargs):
