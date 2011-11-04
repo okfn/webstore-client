@@ -32,8 +32,11 @@ FIXTURES = [{'place': 'Berlin', 'temp': '5', 'humidity': '0.6'},
 class WebstoreClientTestCase(unittest.TestCase):
     
     def setUp(self):
-        self.server_url = 'localhost:6675'
-        self.database = Database(self.server_url, 'test', 'test')
+        self.server_url = 'localhost'
+        self.port = 6675
+        # self.port = 5001
+        self.database = Database(self.server_url, 'test', 'test',
+                port=self.port)
         self.table = self.database['test']
         self.table.writerows(FIXTURES)
 
@@ -54,11 +57,6 @@ class WebstoreClientTestCase(unittest.TestCase):
     def test_database_getitem(self):
         test = self.database['test']
         assert isinstance(test, Table), test
-        assert test.exists(), test
-
-        not_there = self.database['not_there']
-        assert isinstance(not_there, Table), not_there
-        assert not not_there.exists(), not_there
 
     def test_table_traverse_full(self):
         all = list(self.table)
@@ -92,8 +90,6 @@ class WebstoreClientTestCase(unittest.TestCase):
     def test_table_delete(self):
         self.table.delete()
         assert not 'test' in self.database
-        assert not self.table.exists()
-
 
 
 if __name__ == '__main__':
