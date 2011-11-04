@@ -52,12 +52,9 @@ connected to a database, you can list tables or check for a specific name::
   >>> 'triples' in database
   False
 
-To actually begin using a table, you can select a table and see whether it
-has already been created::
+To actually begin using a table, you can select a table::
 
   >>> table = database['weather']
-  >>> table.exists
-  False
 
 ... but what good is an empty table? So let's fill this thing with some 
 rows::
