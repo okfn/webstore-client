@@ -34,7 +34,7 @@ class WebstoreClientTestCase(unittest.TestCase):
     def setUp(self):
         self.server_url = 'localhost'
         self.port = 6675
-        # self.port = 5001
+        self.port = 5001
         self.database = Database(self.server_url, 'test', 'test',
                 port=self.port)
         self.table = self.database['test']
@@ -74,6 +74,7 @@ class WebstoreClientTestCase(unittest.TestCase):
     def test_table_add_row(self):
         row = {'place': 'Tokyo', 'radiation': '5usv'}
         self.table.writerow(row)
+        print self.table
         all = list(self.table)
         assert len(all)==len(FIXTURES)+1, all
         tok = list(self.table.traverse(place='Tokyo'))

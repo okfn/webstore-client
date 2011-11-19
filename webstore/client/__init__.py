@@ -232,7 +232,7 @@ class Database(_Base):
     def tables(self):
         """ Get a list of the tables defined in this database. """
         response = self._request("GET", '')
-        return [r.get('name') for r in response]
+        return [r.get('name') for r in response['data']]
 
     def __getitem__(self, table_name):
         """ Get a table from the database by name. 
@@ -313,7 +313,7 @@ class Table(_Base):
             qs = urlencode([(k, unicode(v).encode('utf-8')) for \
                             k, v in page_query])
             result = self._request("GET", '?' + qs)
-            for row in result:
+            for row in result['data']:
                 yield row
             if len(result) < _step:
                 break
