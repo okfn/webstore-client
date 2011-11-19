@@ -150,7 +150,12 @@ class _Base(object):
             _headers['Authorization'] = self.authorization
         _headers.update(headers)
         path = urljoin(self.base_path, path)
-        _headers['Content-Length'] = len(data) if data else 0
+        # HACK!! See issue #6. For some reason introduction of Basic Auth
+        # requires +2 on content length
+        if self.authorization and self.authorization.startswith('Basic'):
+            _headers['Content-Length'] = len(data)+2 if data else 0
+        else:
+            _headers['Content-Length'] = len(data) if data else 0
         conn = HTTPConnection(self.server, self.port)
         conn.request(method, path, data, _headers)
         response = conn.getresponse()
