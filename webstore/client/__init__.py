@@ -66,6 +66,7 @@ def URL(url, default_table=None):
     """ Create a webstore database handle from a URL.
     The URL is assumed to have the following form::
 
+        http://apikey@server/db_user/db_database[/table]
         http://user:password@server/db_user/db_database[/table]
 
     If no ``user`` and ``password`` are given, anonymous access is 
@@ -78,8 +79,12 @@ def URL(url, default_table=None):
     path = parsed.path.split('/')[1:]
     if len(path) < 2:
         raise ValueError("Incomplete webstore DB path: %s" % parsed.path)
-    db = Database(parsed.hostname, path[0], path[1], port=parsed.port,
-                  http_user=parsed.username, http_password=parsed.password)
+    if parsed.username and not parsed.password:
+        db = Database(parsed.hostname, path[0], path[1], port=parsed.port,
+                      http_apikey=parsed.username)
+    else:
+        db = Database(parsed.hostname, path[0], path[1], port=parsed.port,
+                      http_user=parsed.username, http_password=parsed.password)
     table = None
     if len(path) > 2:
         table = db[path[2]]
