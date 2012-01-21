@@ -188,7 +188,7 @@ class Database(_Base):
 
     def __init__(self, server, database_user, database_name, 
             port=None, http_user=None, http_password=None,
-            http_apikey=None):
+            http_apikey=None, attach=[]):
         """ Create a new database connection to the server `server_url`.
 
         This will create an object that allows the creation and management
@@ -208,12 +208,14 @@ class Database(_Base):
             - `http_user`: the username for HTTP authentication.
             - `http_password`: the user's password.
             - `http_apikey`: API Key e.g. for CKAN.
+            - `attach`: A list of other databases to attach.
         """
         self.database_user = database_user
         self.database_name = database_name
         self.http_user = http_user
         self.http_password = http_password
         self.http_apikey = http_apikey
+        self.attach = attach
         assert not '/' in server, "Server hostname most not contain '/'!"
         base_path = '/' + database_user + '/' + database_name
         super(Database, self).__init__(server, port, base_path,
@@ -223,8 +225,12 @@ class Database(_Base):
         """ Run a raw SQL query against the webstore. If the user has rights
         to delete entries, this can be any SQL statement, otherwise it may only
         be a read-only query. """
-        return self._request("PUT", '', data=query, 
-                headers={'Content-Type': 'text/sql'})
+        payload = {
+            "query": query,
+            "attach": self.attach
+            }
+        return self._request("PUT", '', data=dumps(payload),
+                             headers={'Content-Type': 'application/json'})
 
     def __contains__(self, table_name):
         """ Check if `table_name` is an existing table on the database. 
